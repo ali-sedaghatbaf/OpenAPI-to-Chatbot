@@ -2,11 +2,11 @@ from typing import Any, Optional
 
 import aiohttp
 
-from api_code.schema import (ApiResponse, Pet, PetGetFindPetsByStatusQuery,
-                             PetGetFindPetsByTagsQuery,
-                             PetPostUpdatePetWithFormQuery,
-                             PetPostUploadFileQuery)
 from api_mcp.server import mcp_server
+from api_tools.schema import (ApiResponse, Pet, PetGetFindPetsByStatusQuery,
+                              PetGetFindPetsByTagsQuery,
+                              PetPostUpdatePetWithFormQuery,
+                              PetPostUploadFileQuery)
 
 BASE_URL = "https://petstore3.swagger.io/api/v3"
 

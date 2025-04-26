@@ -1,30 +1,35 @@
 from pydantic_ai import Agent
 from pydantic_ai.mcp import MCPServerHTTP, MCPServerStdio
-from api_mcp import server
+import inspect
+from api_mcp import client
 import gradio as gr
 import uvicorn
 import os
 
 
-def get_sse_server(host=server.default_host, port=server.default_port):
-    return MCPServerHTTP(
-        url=f"http://{host}:{port}/sse")
-
-
-def get_stdio_server():
-    return MCPServerStdio(
-        command="uv",
-        args=["run", "server_exec.py"],)
-
-
 class Chatbot:
-    def __init__(self, use_sse: bool = False):
-        if use_sse:
-            mcp_server = get_sse_server()
+
+    async def start(self):
+        await self._init_agent()
+
+        use_web = os.getenv("CHAT_UI") == "web"
+        if use_web:
+            await self._start_web()
         else:
-            mcp_server = get_stdio_server()
+            await self._start_cmd()
+
+    async def _init_agent(self):
+        use_sse = os.getenv("TRANSPORT") == "sse"
+        if use_sse:
+            host = os.getenv("MCP_HOST")
+            port = int(os.getenv("MCP_PORT"))
+            mcp_server = MCPServerHTTP(url=f"http://{host}:{port}/sse")
+        else:
+            mcp_server = MCPServerStdio(command="uv",
+                                        args=["run", "server_exec.py"],)
+
         self.agent = Agent(
-            os.getenv("MODEL", "openai:gpt-4o-mini"), mcp_servers=[mcp_server])
+            os.getenv("AI_MODEL"), mcp_servers=[mcp_server], verbose=True)
 
     async def _simple_chat(self, user_message, chat_history):
 
@@ -42,21 +47,19 @@ class Chatbot:
         else:
             return "No file uploaded."
 
-    async def start_web(self):
+    async def _start_web(self):
         with gr.Blocks(title="OpenAPI Chatbot") as demo:
             with gr.Row():
                 with gr.Column(scale=1):
-                    file_input = gr.File(label="Upload a file")
-                    file_status = gr.Textbox(
-                        label="File status", interactive=False)
-                    file_input.change(self._on_file_upload,
-                                      inputs=file_input, outputs=file_status)
+                    pass
                 with gr.Column(scale=3):
                     chatbot = gr.ChatInterface(
                         fn=self._simple_chat,
                         type="messages",
                         theme="default",
                     )
+                with gr.Column(scale=1):
+                    pass
         app, _, _ = demo.launch(prevent_thread_lock=True)
 
         async with self.agent.run_mcp_servers():
@@ -64,14 +67,14 @@ class Chatbot:
             server = uvicorn.Server(config)
             await server.serve()
 
-    async def start_cmd(self):
+    async def _start_cmd(self):
 
         async with self.agent.run_mcp_servers():
             chat_history = []
             while True:
                 user_message = input("You: ")
                 if user_message.lower() in ["exit", "quit"]:
-                    server.shutdown_event.set()
+
                     print("Exiting chat...")
                     break
                 bot_reply = await self._simple_chat(user_message, chat_history)

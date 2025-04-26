@@ -6,8 +6,8 @@ from datetime import date, datetime
 
 
 class UserGetLoginUserQuery(BaseModel):
-    password: Optional[str] = None
     username: Optional[str] = None
+    password: Optional[str] = None
 
 
 class PetGetFindPetsByStatusQuery(BaseModel):
@@ -19,8 +19,8 @@ class PetGetFindPetsByTagsQuery(BaseModel):
 
 
 class PetPostUpdatePetWithFormQuery(BaseModel):
-    name: Optional[str] = None
     status: Optional[str] = None
+    name: Optional[str] = None
 
 
 class PetPostUploadFileQuery(BaseModel):

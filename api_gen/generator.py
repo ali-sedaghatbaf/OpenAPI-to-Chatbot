@@ -7,7 +7,7 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 
-def generate_api(input_path: str = "openapi.yaml", output_path: str = "api_code"):
+def generate_api(input_path: str = "openapi.yaml", output_path: str = "api_tools"):
 
     with open(input_path, "r") as f:
         yaml_data = yaml.safe_load(f)

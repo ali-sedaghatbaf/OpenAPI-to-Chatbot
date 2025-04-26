@@ -5,11 +5,13 @@ from mcp.client.stdio import stdio_client
 from api_mcp import server
 from pathlib import Path
 import sys
+import os
+from pydantic_ai import Tool
+import inspect
 # Create server parameters for stdio connection
 server_params = StdioServerParameters(
     command="uv",
     args=["run", "server_exec.py"],
-    env=None,
     log_output=True,
 )
 
@@ -29,8 +31,9 @@ async def handle_sampling_message(
     )
 
 
-async def run_sse(host=server.default_host, port=server.default_port):
-    print(f"Connecting to SSE server at http://{host}:{port}/sse")
+async def run_sse():
+    host = os.getenv("MCP_HOST")
+    port = int(os.getenv("MCP_PORT"))
     async with sse_client(f"http://{host}:{port}/sse") as streams:
 
         async with ClientSession(streams[0], streams[1], sampling_callback=handle_sampling_message) as session:
@@ -64,5 +67,5 @@ async def run_session(session: ClientSession):
 
     print(f"Available tools: {[tool.name for tool in response.tools]}")
     # Call a tool
-    result = await session.call_tool("pet_get_find_pets_by_status", arguments={"params": {"status": "sold"}})
-    print(result.content)
+    # result = await session.call_tool("pet_get_find_pets_by_status", arguments={"params": {"status": "sold"}})
+    # print(result.content)

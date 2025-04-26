@@ -4,8 +4,9 @@ from api_gen.generator import generate_api
 import asyncio
 import importlib
 import pkgutil
-import api_code  # Import the generated API code
+import api_tools  # Import the generated API code
 import os
+import sys
 
 
 def import_all_tool_modules(pkg):
@@ -16,10 +17,19 @@ def import_all_tool_modules(pkg):
 
 async def main():
     generate_api()
-    import_all_tool_modules(api_code)
+    import_all_tool_modules(api_tools)
     use_sse = os.getenv("TRANSPORT") == "sse"
-    await server.run(use_sse=use_sse)
+
+    if use_sse:
+        await server.run_sse()
+    else:
+        await server.run_stdio()
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("Shutting down...")
+
+        exit(0)

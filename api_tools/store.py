@@ -2,8 +2,8 @@ from typing import Any, Optional
 
 import aiohttp
 
-from api_code.schema import Order
 from api_mcp.server import mcp_server
+from api_tools.schema import Order
 
 BASE_URL = "https://petstore3.swagger.io/api/v3"
 

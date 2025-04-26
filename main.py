@@ -1,22 +1,25 @@
-from api_mcp import client, server, chat
+
 import asyncio
 from dotenv import load_dotenv
 import os
+import subprocess
+import time
+import requests
 
-load_dotenv()
+load_dotenv(".env", override=True)
+
 
 if __name__ == "__main__":
+    from api_mcp import chat, errors
+    try:
+        chatbot = chat.Chatbot()
+        asyncio.run(chatbot.start())
 
-    run_mode = os.getenv("MODE", "chat")
-    if run_mode == "chat":
-        chatbot = chat.Chatbot(use_sse=os.getenv(
-            "TRANSPORT") == "sse")
-        if os.getenv("UI") == "web":
-            asyncio.run(chatbot.start_web())
-        else:
-            asyncio.run(chatbot.start_cmd())
-    else:
-        if os.getenv("TRANSPORT") == "sse":
-            asyncio.run(client.run_sse())
-        else:
-            asyncio.run(client.run_stdio())
+    except errors.MCPError as e:
+        print(f"Error communicating with the MCP Server: {e}")
+
+        exit(1)
+    except KeyboardInterrupt:
+        print("Shutting down...")
+
+        exit(0)
