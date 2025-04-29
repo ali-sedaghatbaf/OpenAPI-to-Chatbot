@@ -1,13 +1,8 @@
-from enum import Enum
+from datetime import datetime
 from pydantic import BaseModel
+from enum import Enum
 from pydantic import validator
 from typing import Optional
-from datetime import date, datetime
-
-
-class UserGetLoginUserQuery(BaseModel):
-    username: Optional[str] = None
-    password: Optional[str] = None
 
 
 class PetGetFindPetsByStatusQuery(BaseModel):
@@ -19,12 +14,17 @@ class PetGetFindPetsByTagsQuery(BaseModel):
 
 
 class PetPostUpdatePetWithFormQuery(BaseModel):
-    status: Optional[str] = None
     name: Optional[str] = None
+    status: Optional[str] = None
 
 
 class PetPostUploadFileQuery(BaseModel):
     additionalMetadata: Optional[str] = None
+
+
+class UserGetLoginUserQuery(BaseModel):
+    password: Optional[str] = None
+    username: Optional[str] = None
 
 
 class OrderStatusEnum(Enum):

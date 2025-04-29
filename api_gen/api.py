@@ -23,8 +23,14 @@ def get_function_info_dict():
 
 
 class Api:
-    __slots__ = ("data", "paths", "schema_imports",
-                 "query_param_schemas", "base_url", "only_tag")
+    __slots__ = (
+        "data",
+        "paths",
+        "schema_imports",
+        "query_param_schemas",
+        "base_url",
+        "only_tag",
+    )
 
     def __init__(self, paths: dict, base_url: str, only_tag: str):
         self.data = []
@@ -44,8 +50,7 @@ class Api:
         else:
             self.data.append("import aiohttp")
         self.data.extend(
-            ["from typing import Any, Optional",
-                "\n", f"BASE_URL = '{self.base_url}'"]
+            ["from typing import Any, Optional", "\n", f"BASE_URL = '{self.base_url}'"]
         )
 
     def get_component_obj_name(self, data: dict) -> str | None:
@@ -56,13 +61,17 @@ class Api:
                 return json_body["schema"]["$ref"]
         return None
 
-    def create_query_param_typedict(self, func_name: str, params: set) -> tuple[str, str]:
+    def create_query_param_typedict(
+        self, func_name: str, params: set
+    ) -> tuple[str, str]:
         cls_name = func_name.title().replace("_", "").replace(" ", "") + "Query"
         request_str = Template(
             """class $cls_name(BaseModel):
         $params"""
         )
-        return request_str.substitute(cls_name=cls_name, params="\n\t".join(params)), cls_name
+        return request_str.substitute(
+            cls_name=cls_name, params="\n\t".join(params)
+        ), cls_name
 
     def generate_obj_imports(self) -> None:
         for level_0 in self.paths.values():
@@ -73,17 +82,17 @@ class Api:
                 if response := val.get("responses"):
                     for resp_val in response.values():
                         if "content" in resp_val:
-                            component_ref = self.get_component_obj_name(
-                                resp_val)
+                            component_ref = self.get_component_obj_name(resp_val)
                             if component_ref:
-                                self.schema_imports.add(
-                                    component_ref.split("/")[-1])
+                                self.schema_imports.add(component_ref.split("/")[-1])
                 if request_body := val.get("requestBody"):
                     component_ref = self.get_component_obj_name(request_body)
                     if component_ref:
                         self.schema_imports.add(component_ref.split("/")[-1])
 
-    def generate_request_functions(self, client_kind: Literal["sync", "async"] = "sync"):
+    def generate_request_functions(
+        self, client_kind: Literal["sync", "async"] = "sync"
+    ):
         for url, val in self.paths.items():
             function_info = get_function_info_dict()
             function_info["url"] = url
@@ -101,21 +110,20 @@ class Api:
                 if req_body := val_obj.get("requestBody"):
                     if json_data := req_body["content"].get("application/json"):
                         if "items" in json_data["schema"]:
-                            obj_name = json_data["schema"]["items"]["$ref"].split(
-                                "/")[-1]
+                            obj_name = json_data["schema"]["items"]["$ref"].split("/")[
+                                -1
+                            ]
                             function_info["request_obj"] = f"list[{obj_name}]"
                         else:
                             function_info["request_obj"] = (
-                                json_data["schema"].get(
-                                    "$ref", "Any").split("/")[-1]
+                                json_data["schema"].get("$ref", "Any").split("/")[-1]
                             )
 
                 if parameters := val_obj.get("parameters"):
                     query_params = set()
                     for obj in parameters:
                         if obj["in"] == "path":
-                            param_name = operation_id_to_function_name(
-                                obj["name"])
+                            param_name = operation_id_to_function_name(obj["name"])
                             param_type = obj["schema"]["type"]
                             url = url.replace(obj["name"], param_name)
                             function_info["url"] = url
@@ -126,14 +134,14 @@ class Api:
                             if obj.get("required"):
                                 type_info = TYPE_CONVERTION[obj["schema"]["type"]]
                             else:
-                                type_info = (
-                                    f"Optional[{TYPE_CONVERTION[obj['schema']['type']]}] = None"
-                                )
+                                type_info = f"Optional[{TYPE_CONVERTION[obj['schema']['type']]}] = None"
 
                             query_params.add(f"{obj['name']}: {type_info}")
                     if query_params:
-                        query_param_schema, param_schema_name = self.create_query_param_typedict(
-                            function_info["function_name"], query_params
+                        query_param_schema, param_schema_name = (
+                            self.create_query_param_typedict(
+                                function_info["function_name"], query_params
+                            )
                         )
                         self.schema_imports.add(param_schema_name)
                         self.query_param_schemas.append(query_param_schema)
@@ -143,14 +151,17 @@ class Api:
                     for content in responses.values():
                         if resp_content := content.get("content"):
                             if "items" in resp_content["application/json"]["schema"]:
-                                resp_ref = resp_content["application/json"]["schema"]["items"].get(
-                                    "$ref", "Any"
-                                )
+                                resp_ref = resp_content["application/json"]["schema"][
+                                    "items"
+                                ].get("$ref", "Any")
                                 function_info["is_list"] = True
                             elif "$ref" in resp_content["application/json"]["schema"]:
-                                resp_ref = resp_content["application/json"]["schema"]["$ref"]
+                                resp_ref = resp_content["application/json"]["schema"][
+                                    "$ref"
+                                ]
                             elif (
-                                "additionalProperties" in resp_content["application/json"]["schema"]
+                                "additionalProperties"
+                                in resp_content["application/json"]["schema"]
                             ):
                                 resp_ref = TYPE_CONVERTION[
                                     resp_content["application/json"]["schema"][
@@ -160,29 +171,33 @@ class Api:
                             else:
                                 try:
                                     resp_ref = TYPE_CONVERTION[
-                                        resp_content["application/json"]["schema"]["type"]
+                                        resp_content["application/json"]["schema"][
+                                            "type"
+                                        ]
                                     ]
                                 except KeyError:
                                     continue
 
-                            if resp_ref_ := resp_ref.split("/")[-1] in ("NoneType", "Metaclass"):
+                            if resp_ref.split("/")[-1] in (
+                                "NoneType",
+                                "Metaclass",
+                            ):
                                 function_info["response_obj"] = None
                             else:
-                                function_info["response_obj"] = resp_ref.split(
-                                    "/")[-1]
-                self.data.append(self.create_request_function_str(
-                    function_info, client_kind))
+                                function_info["response_obj"] = resp_ref.split("/")[-1]
+                self.data.append(
+                    self.create_request_function_str(function_info, client_kind)
+                )
 
     def create_async_request(self, data: dict):
-
         if data["query_parameters"] and not data["path_parameters"]:
             function_str = Template(
                 """@mcp_server.tool()
 async def $function_name($function_params)$response_type:
-            
+
     async with aiohttp.ClientSession() as session:
         async with session.$method(f"{BASE_URL}$url", params=params.model_dump(exclude_unset=True), $call_params) as resp:
-            print(resp)
+
             if resp.ok:
                 $return_response
             else:
@@ -194,10 +209,10 @@ async def $function_name($function_params)$response_type:
                 """@mcp_server.tool()
 async def $function_name($function_params)$response_type:
     url = f"{BASE_URL}$url"
-    
+
     async with aiohttp.ClientSession() as session:
         async with session.$method(url=url, $call_params) as resp:
-            print(resp)
+
             if resp.ok:
                 $return_response
             else:
@@ -209,10 +224,10 @@ async def $function_name($function_params)$response_type:
                 """@mcp_server.tool()
 async def $function_name($function_params)$response_type:
     url = f"{BASE_URL}$url"
-    
+
     async with aiohttp.ClientSession() as session:
         async with session.$method(url=url, params=params.model_dump(exclude_unset=True), $call_params) as resp:
-            print(resp)
+
             if resp.ok:
                 $return_response
             else:
@@ -223,10 +238,10 @@ async def $function_name($function_params)$response_type:
             function_str = Template(
                 """@mcp_server.tool()
 async def $function_name($function_params)$response_type:
- 
+
     async with aiohttp.ClientSession() as session:
         async with session.$method(url=f"{BASE_URL}$url", $call_params) as resp:
-            print(resp)
+
             if resp.ok:
                 $return_response
             else:
@@ -239,9 +254,9 @@ async def $function_name($function_params)$response_type:
         if data["query_parameters"] and not data["path_parameters"]:
             function_str = Template(
                 """def $function_name($function_params)$response_type:
-        
+
             response_obj = requests.$method(url=f"{BASE_URL}$url", params=params.model_dump(exclude_unset=True), $call_params)
-            
+
             if response_obj.ok:
                 return $return_response
             return None
@@ -251,9 +266,9 @@ async def $function_name($function_params)$response_type:
             function_str = Template(
                 """def $function_name($function_params)$response_type:
             url = f"{BASE_URL}$url"
-            
+
             response_obj = requests.$method(url=url, $call_params)
-            
+
             if response_obj.ok:
                 return $return_response
             return None
@@ -263,10 +278,10 @@ async def $function_name($function_params)$response_type:
             function_str = Template(
                 """def $function_name($function_params)$response_type:
             url = f"{BASE_URL}$url"
-            
-            
+
+
             response_obj = requests.$method(url=url, params=params.model_dump(exclude_unset=True), $call_params)
-            
+
             if response_obj.ok:
                 return $return_response
             return None
@@ -275,9 +290,9 @@ async def $function_name($function_params)$response_type:
         else:
             function_str = Template(
                 """def $function_name($function_params)$response_type:
-            
+
             response_obj = requests.$method(url=f"{BASE_URL}$url", $call_params)
-            
+
             if response_obj.ok:
                 return $return_response
             return None
@@ -294,10 +309,8 @@ async def $function_name($function_params)$response_type:
         request_call_params = []
 
         if data["request_obj"]:
-            function_head_list.extend(
-                [f'req_data: {data["request_obj"]}', "/"])
-            request_call_params.append(
-                "json=req_data.dict(exclude_unset=True)")
+            function_head_list.extend([f"req_data: {data['request_obj']}", "/"])
+            request_call_params.append("json=req_data.dict(exclude_unset=True)")
         if path_parameters:
             function_head_list.append(path_parameters)
 
@@ -320,7 +333,9 @@ async def $function_name($function_params)$response_type:
         if response_obj := data["response_obj"]:
             if client_kind == "sync":
                 if data["is_list"]:
-                    return_response = f"[{response_obj}(**obj) for obj in response_obj.json()]"
+                    return_response = (
+                        f"[{response_obj}(**obj) for obj in response_obj.json()]"
+                    )
                 else:
                     return_response = f"{response_obj}(**response_obj.json())"
             else:
@@ -340,7 +355,7 @@ async def $function_name($function_params)$response_type:
                     ).substitute(resp_obj=response_obj)
         else:
             if client_kind == "sync":
-                return_response = f"response_obj.json()"
+                return_response = "response_obj.json()"
             else:
                 return_response = Template(
                     """
@@ -387,6 +402,7 @@ async def $function_name($function_params)$response_type:
         file = folder_path / Path(f"{self.only_tag.lower()}.py")
         file.write_text(text)
         isort.api.sort_file(file)
+
 
 # api_info = dict(title=spec['info']['title'],
 #                 version=spec['info']['version'],

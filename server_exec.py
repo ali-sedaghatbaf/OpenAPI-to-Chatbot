@@ -1,12 +1,11 @@
 # from api_mcp.client import run_sse, run_stdio
-from api_mcp import server
+from api_mcp.server import run_async_server
 from api_gen.generator import generate_api
 import asyncio
 import importlib
 import pkgutil
-import api_tools  # Import the generated API code
+import api_tools
 import os
-import sys
 
 
 def import_all_tool_modules(pkg):
@@ -16,14 +15,9 @@ def import_all_tool_modules(pkg):
 
 
 async def main():
-    generate_api()
+    generate_api(input_path=os.getenv("OPENAPI_FILE"))
     import_all_tool_modules(api_tools)
-    use_sse = os.getenv("TRANSPORT") == "sse"
-
-    if use_sse:
-        await server.run_sse()
-    else:
-        await server.run_stdio()
+    await run_async_server()
 
 
 if __name__ == "__main__":
