@@ -25,19 +25,23 @@ Clone the repo:
 ```bash
 git clone https://github.com/ali-sedaghatbaf/OpenAPI-to-Chatbot.git
 cd OpenAPI-to-Chatbot
-uv sync
+uv venv
 ```
 
 Copy .encv.example into a.env file and initialize the variables properly.
+```bash
 OPENAPI_FILE=         # Path to your OpenAPI YAML (optional at startup)
 AI_MODEL=gpt-4o       # Your model name (e.g., gpt-4, gpt-4o, etc.)
 TRANSPORT=stdio       # 'stdio' or 'sse'
 CHAT_UI=web           # 'web' for Gradio or 'cmd' for terminal
 MCP_HOST=127.0.0.1    # (Only for 'sse' mode)
 MCP_PORT=8000         # (Only for 'sse' mode)
+```
 
 🚀 Running the App
+```bash
 uv run main.py
+```
 
 🧠 How It Works
 
